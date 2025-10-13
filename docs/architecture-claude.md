@@ -1594,58 +1594,13 @@ Client aggregates `text-delta` events into full message.
 
 ### 8.4 Proposed WebSocket Architecture
 
-**Server** (Hono supports WebSocket upgrades):
+**Implementation Approach**:
+- Server: Hono supports WebSocket upgrades via `upgradeWebSocket` from `hono/ws`
+- Client: React Native's native WebSocket API
+- Authentication: Validate session on connection (query param or initial message)
+- Connection Management: Store active connections in a Map by userId
 
-```typescript
-import { upgradeWebSocket } from "hono/ws";
-
-app.get("/ws", upgradeWebSocket((c) => ({
-  async onOpen(event, ws) {
-    // Authenticate via query param or initial message
-    const session = await auth.api.getSession({ ... });
-    if (!session) {
-      ws.close(1008, "Unauthorized");
-      return;
-    }
-    // Store ws in a map by userId for targeted messages
-    connections.set(session.user.id, ws);
-  },
-  async onMessage(event, ws) {
-    const data = JSON.parse(event.data);
-    // Handle client messages (e.g., subscribe to task updates)
-  },
-  onClose(event, ws) {
-    // Clean up connection
-    connections.delete(userId);
-  },
-})));
-```
-
-**Client** (React Native):
-
-```typescript
-import { useEffect, useState } from "react";
-
-function useWebSocket(url: string) {
-  const [ws, setWs] = useState<WebSocket | null>(null);
-
-  useEffect(() => {
-    const socket = new WebSocket(url);
-    socket.onopen = () => console.log("Connected");
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      // Handle server messages (e.g., task progress)
-    };
-    socket.onclose = () => console.log("Disconnected");
-    setWs(socket);
-    return () => socket.close();
-  }, [url]);
-
-  return ws;
-}
-```
-
-**Events** (Example):
+**Proposed Events**:
 
 | Event | Direction | Payload | Purpose |
 |-------|-----------|---------|---------|
@@ -1661,63 +1616,13 @@ function useWebSocket(url: string) {
 - E.g., "Your AI-generated thumbnail is ready"
 - E.g., "New brand deal opportunity"
 
-**Setup**:
+**Implementation Steps**:
+1. **Client**: Request permission and obtain Expo push token
+2. **Server**: Store push tokens in database (PushToken table with userId and token)
+3. **Server**: Use Expo Server SDK to send notifications to stored tokens
+4. **Client**: Handle received notifications and navigation when tapped
 
-1. **Expo Notifications**:
-   ```typescript
-   import * as Notifications from "expo-notifications";
-
-   // Request permission
-   const { status } = await Notifications.requestPermissionsAsync();
-
-   // Get Expo push token
-   const token = (await Notifications.getExpoPushTokenAsync()).data;
-
-   // Send token to server
-   await orpc.user.registerPushToken.mutate({ token });
-   ```
-
-2. **Server Storage**:
-   - Add `PushToken` table:
-     ```prisma
-     model PushToken {
-       id     String @id @default(cuid())
-       userId String
-       token  String @unique
-       user   User   @relation(fields: [userId], references: [id])
-     }
-     ```
-
-3. **Sending Notifications** (Server):
-   ```typescript
-   import { Expo } from "expo-server-sdk";
-   const expo = new Expo();
-
-   const messages = [{
-     to: userPushToken,
-     sound: "default",
-     body: "Your content is ready!",
-     data: { taskId: "123" },
-   }];
-
-   const chunks = expo.chunkPushNotifications(messages);
-   for (const chunk of chunks) {
-     await expo.sendPushNotificationsAsync(chunk);
-   }
-   ```
-
-4. **Handling Notifications** (Client):
-   ```typescript
-   Notifications.addNotificationReceivedListener((notification) => {
-     // Show in-app banner or update UI
-   });
-
-   Notifications.addNotificationResponseReceivedListener((response) => {
-     // User tapped notification; navigate to relevant screen
-     const { taskId } = response.notification.request.content.data;
-     router.push(`/tasks/${taskId}`);
-   });
-   ```
+**Libraries**: `expo-notifications` (client), `expo-server-sdk` (server)
 
 ### 8.6 Scaling Real-Time
 
@@ -1756,34 +1661,9 @@ function useWebSocket(url: string) {
 - Send email notifications
 - Analytics aggregation
 
-**Architecture**:
-
-```typescript
-// packages/api/src/queue.ts
-import amqp from "amqplib";
-
-const connection = await amqp.connect(process.env.AMQP_URL);
-const channel = await connection.createChannel();
-
-export async function enqueueTask(queue: string, data: any) {
-  await channel.assertQueue(queue);
-  channel.sendToQueue(queue, Buffer.from(JSON.stringify(data)));
-}
-
-// Worker (separate process or same server)
-export async function consumeTasks(queue: string, handler: (data: any) => Promise<void>) {
-  await channel.assertQueue(queue);
-  channel.consume(queue, async (msg) => {
-    const data = JSON.parse(msg!.content.toString());
-    await handler(data);
-    channel.ack(msg!);
-  });
-}
-```
-
-**Workflow**:
+**Proposed Workflow**:
 1. User requests thumbnail generation
-2. API creates task record in DB, enqueues to RabbitMQ, returns task ID
+2. API creates task record in DB, enqueues to message queue, returns task ID
 3. Worker picks up task, calls AI, saves result to DB
 4. Worker sends WebSocket message or push notification to user
 5. User sees "Task complete" and fetches result
@@ -1808,106 +1688,21 @@ export async function consumeTasks(queue: string, handler: (data: any) => Promis
 
 ### 9.3 Proposed Architecture
 
-**Storage Abstraction** (`packages/storage`):
-
-```typescript
-// packages/storage/src/index.ts
-export interface StorageProvider {
-  upload(file: Buffer, key: string, options?: UploadOptions): Promise<string>;
-  getSignedUrl(key: string, expiresIn?: number): Promise<string>;
-  delete(key: string): Promise<void>;
-}
-
-// Implementations
-export class S3Storage implements StorageProvider { ... }
-export class MinioStorage implements StorageProvider { ... }
-export class R2Storage implements StorageProvider { ... }
-export class GCSStorage implements StorageProvider { ... }
-export class AzureBlobStorage implements StorageProvider { ... }
-
-// Factory
-export function createStorage(provider: string): StorageProvider {
-  switch (provider) {
-    case "s3": return new S3Storage(process.env.S3_BUCKET, ...);
-    case "minio": return new MinioStorage(process.env.MINIO_ENDPOINT, ...);
-    case "r2": return new R2Storage(process.env.R2_ACCOUNT_ID, ...);
-    // ...
-    default: throw new Error(`Unknown storage provider: ${provider}`);
-  }
-}
-```
+**Storage Abstraction Approach**:
+- Create `packages/storage` with unified `StorageProvider` interface
+- Interface methods: `upload()`, `getSignedUrl()`, `delete()`
+- Implement provider classes: S3Storage, MinioStorage, R2Storage, GCSStorage, AzureBlobStorage
+- Factory function selects provider based on `STORAGE_PROVIDER` environment variable
 
 **Server Integration**:
+- Upload endpoint: Accept multipart/form-data, upload to storage, return URL
+- Presigned URL endpoint: Generate signed URL for direct client-to-storage upload
+- Track uploaded files in database (File table with key, url, filename, contentType, size, userId)
 
-```typescript
-// apps/server/src/index.ts
-import { createStorage } from "@picfluencer/storage";
-const storage = createStorage(process.env.STORAGE_PROVIDER || "s3");
-
-// Upload endpoint (multipart/form-data)
-app.post("/api/upload", async (c) => {
-  const formData = await c.req.formData();
-  const file = formData.get("file") as File;
-  const buffer = await file.arrayBuffer();
-
-  const key = `uploads/${crypto.randomUUID()}-${file.name}`;
-  const url = await storage.upload(Buffer.from(buffer), key);
-
-  return c.json({ url });
-});
-
-// Presigned URL endpoint (for direct upload from client)
-app.post("/api/upload/url", async (c) => {
-  const { filename, contentType } = await c.req.json();
-  const key = `uploads/${crypto.randomUUID()}-${filename}`;
-  const signedUrl = await storage.getSignedUrl(key, 300); // 5 min expiration
-
-  return c.json({ signedUrl, key });
-});
-```
-
-**Client Usage** (Mobile App):
-
-Option 1: Direct Upload via Server
-```typescript
-import * as ImagePicker from "expo-image-picker";
-
-const result = await ImagePicker.launchImageLibraryAsync();
-if (!result.canceled) {
-  const formData = new FormData();
-  formData.append("file", {
-    uri: result.assets[0].uri,
-    type: "image/jpeg",
-    name: "upload.jpg",
-  } as any);
-
-  const response = await fetch(`${SERVER_URL}/api/upload`, {
-    method: "POST",
-    body: formData,
-  });
-  const { url } = await response.json();
-  // Use url (e.g., save to user profile)
-}
-```
-
-Option 2: Presigned URL (Direct to S3/R2)
-```typescript
-// 1. Request signed URL from server
-const { signedUrl, key } = await orpc.upload.getSignedUrl.mutate({
-  filename: "profile.jpg",
-  contentType: "image/jpeg",
-});
-
-// 2. Upload directly to storage
-await fetch(signedUrl, {
-  method: "PUT",
-  headers: { "Content-Type": "image/jpeg" },
-  body: await fetch(result.assets[0].uri).then(r => r.blob()),
-});
-
-// 3. Notify server upload is complete
-await orpc.upload.confirmUpload.mutate({ key });
-```
+**Client Integration**:
+- Option 1: Upload via server endpoint (simpler, but uses server bandwidth)
+- Option 2: Request presigned URL, upload directly to storage (efficient, complex)
+- Use `expo-image-picker` for file selection
 
 ### 9.4 Storage Providers Comparison
 
@@ -1923,27 +1718,10 @@ await orpc.upload.confirmUpload.mutate({ key });
 
 ### 9.5 Database Schema
 
-**Add File Tracking**:
-
-```prisma
-model File {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  url         String
-  filename    String
-  contentType String
-  size        Int
-  uploadedBy  String
-  user        User     @relation(fields: [uploadedBy], references: [id])
-  createdAt   DateTime @default(now())
-}
-```
-
-**Use Cases**:
-- Track all uploaded files
-- Associate files with users
-- Enable file deletion (clean up orphaned files)
-- Audit uploads
+**File Tracking Table**:
+- Add `File` model to Prisma schema
+- Fields: id, key, url, filename, contentType, size, uploadedBy (userId), createdAt
+- Use cases: Track uploads, associate with users, enable cleanup, audit
 
 ### 9.6 Security Considerations
 
