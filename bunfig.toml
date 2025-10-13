@@ -1,0 +1,2 @@
+[install]
+linker = "hoisted"  # having issues with Nuxt and NativeWind/Unistyles when linker is isolated
