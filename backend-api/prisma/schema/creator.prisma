@@ -1,0 +1,68 @@
+// Creator Profile & Content Models
+// Uncomment and modify when ready to implement
+
+// model CreatorProfile {
+//   id          String   @id @default(cuid())
+//   userId      String   @unique
+//   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//
+//   // Profile details
+//   bio         String?  @db.Text
+//   niche       String?
+//   audience    String?
+//   tone        String?
+//   goals       String[]
+//
+//   // Social handles
+//   instagram   String?
+//   tiktok      String?
+//   youtube     String?
+//   twitter     String?
+//
+//   // Settings
+//   preferences Json?
+//
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//
+//   @@map("creator_profile")
+// }
+
+// model Content {
+//   id          String   @id @default(cuid())
+//   userId      String
+//   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//
+//   // Content details
+//   type        String   // idea, script, caption, etc.
+//   title       String?
+//   content     Json
+//   platform    String?
+//   status      String   @default("draft") // draft, published, archived
+//
+//   // Metadata
+//   tags        String[]
+//   metadata    Json?
+//
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//
+//   @@map("content")
+// }
+
+// model ContentAnalytics {
+//   id          String   @id @default(cuid())
+//   contentId   String   @unique
+//   content     Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+//
+//   views       Int      @default(0)
+//   likes       Int      @default(0)
+//   comments    Int      @default(0)
+//   shares      Int      @default(0)
+//   engagement  Float    @default(0)
+//
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//
+//   @@map("content_analytics")
+// }

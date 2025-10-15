@@ -1,7 +1,12 @@
 {
   "name": "backend-api",
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "bun run --hot src/index.ts",
+    "prisma:generate": "bunx prisma generate",
+    "prisma:migrate": "bunx prisma migrate dev",
+    "prisma:studio": "bunx prisma studio",
+    "prisma:push": "bunx prisma db push",
+    "db:setup": "bun run prisma:generate && bun run prisma:migrate"
   },
   "dependencies": {
     "@prisma/client": "^6.17.1",
