@@ -7,9 +7,12 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useSession } from '@/lib/auth-client';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { data: session } = useSession();
+  const isSignedIn = !!session?.user;
 
   return (
     <Tabs
@@ -45,6 +48,7 @@ export default function TabLayout() {
         options={{
           title: 'Sign In',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.crop.circle.badge.plus" color={color} />,
+          href: isSignedIn ? null : '/auth',
         }}
       />
       <Tabs.Screen
@@ -52,6 +56,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.crop.circle.fill" color={color} />,
+          href: isSignedIn ? '/profile' : null,
         }}
       />
     </Tabs>
