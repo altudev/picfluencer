@@ -1,6 +1,6 @@
 # Prisma Schema Organization
 
-This project uses Prisma's multi-schema file support (prismaSchemaFolder) to organize database models into logical modules.
+**Note:** While we have a modular schema structure for organization, currently all active models must be in the main `schema.prisma` file for migrations to work properly. The files in `schema/` folder serve as templates and documentation for future models.
 
 ## Structure
 
