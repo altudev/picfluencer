@@ -7,7 +7,12 @@ import Constants from "expo-constants";
 
 // Get the API URL from environment or use localhost
 const getApiUrl = () => {
-  // In production, this would come from environment variables
+  // Try to get from Expo config first (using app.config.js)
+  if (Constants.expoConfig?.extra?.apiUrl) {
+    return Constants.expoConfig.extra.apiUrl;
+  }
+
+  // Fallback to manifest (older Expo versions)
   if (Constants.manifest?.extra?.apiUrl) {
     return Constants.manifest.extra.apiUrl;
   }
