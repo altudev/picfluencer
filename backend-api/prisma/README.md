@@ -1,48 +1,31 @@
-# Prisma Schema Organization
+# Prisma + Better Auth Integration
 
-**Note:** While we have a modular schema structure for organization, currently all active models must be in the main `schema.prisma` file for migrations to work properly. The files in `schema/` folder serve as templates and documentation for future models.
+This project uses Prisma ORM with PostgreSQL for database management, integrated with Better Auth for authentication.
 
-## Structure
+## Database Configuration
 
-```
-prisma/
-├── schema.prisma      # Main config with generator and datasource
-├── schema/           # Folder containing all schema modules
-│   ├── db.prisma         # Database configuration
-│   ├── better-auth.prisma # Authentication models (User, Session, Account, Verification)
-│   ├── creator.prisma    # Creator profile and content models (future)
-│   └── payment.prisma    # Payment and subscription models (future)
-└── migrations/       # Database migrations (auto-generated)
-```
-
-## How it Works
-
-With the `prismaSchemaFolder` preview feature enabled, Prisma automatically discovers and merges all `.prisma` files in the `schema/` directory when you run commands like:
-
-- `bunx prisma generate` - Generates the Prisma Client
-- `bunx prisma migrate dev` - Creates and runs migrations
-- `bunx prisma studio` - Opens Prisma Studio
-
-## Adding New Schema Files
-
-1. Create a new `.prisma` file in the `schema/` folder
-2. Add your models (they'll automatically be included)
-3. Run `bunx prisma generate` to update the client
-4. Run `bunx prisma migrate dev` to create migrations
+- **Database**: PostgreSQL
+- **Connection**: Configured via `DATABASE_URL` in `.env` file
+- **Schema**: Single `schema.prisma` file containing all models
 
 ## Current Models
 
-### Authentication (better-auth.prisma)
-- **User** - User accounts with support for anonymous auth
-- **Session** - Active user sessions
-- **Account** - OAuth provider accounts
-- **Verification** - Email verification tokens
+### Authentication Models (Better Auth)
 
-### Future Models (commented out)
-- **CreatorProfile** - Creator-specific profile data
-- **Content** - Generated content (ideas, scripts, captions)
-- **Subscription** - User subscription plans
-- **Payment** - Payment records
+- **User** - User accounts with support for anonymous authentication
+  - Includes `isAnonymous` field for anonymous users
+  - Email, name, image, and verification status
+
+- **Session** - Active user sessions
+  - Token-based sessions with expiration
+  - IP address and user agent tracking
+
+- **Account** - OAuth and credential provider accounts
+  - Supports multiple auth providers per user
+  - Stores access/refresh tokens for OAuth
+
+- **Verification** - Email verification and magic link tokens
+  - Used for email verification and passwordless login
 
 ## Commands
 
@@ -53,19 +36,38 @@ bun run prisma:generate
 # Create and run migrations
 bun run prisma:migrate
 
-# Push schema changes directly (skip migrations)
+# Push schema changes directly (development)
 bun run prisma:push
 
-# Open Prisma Studio
+# Open Prisma Studio (GUI for database)
 bun run prisma:studio
 
-# Setup database (generate + migrate)
+# Full setup (generate + migrate)
 bun run db:setup
 ```
 
-## Notes
+## Working with the Database
 
-- The `prismaSchemaFolder` feature is currently in preview
-- All schema files in the `schema/` directory are automatically merged
-- Relations between models in different files work seamlessly
-- The main `schema.prisma` file must contain the generator and datasource blocks
+### Initial Setup
+1. Ensure PostgreSQL is running
+2. Set `DATABASE_URL` in `.env` file
+3. Run `bun run db:setup` to create tables
+
+### Making Schema Changes
+1. Edit `schema.prisma` file
+2. Run `bunx prisma generate` to update the client
+3. Run `bunx prisma migrate dev --name describe-change` to create migration
+
+### Development Tips
+- Use `bunx prisma studio` to view and edit data visually
+- Use `bunx prisma db push` for rapid prototyping (skips migrations)
+- Always run `bunx prisma generate` after schema changes
+
+## Future Models (To Be Added)
+
+When needed, the following models can be added to support additional features:
+
+- **CreatorProfile** - Creator-specific profile data
+- **Content** - Generated content (ideas, scripts, captions)
+- **Subscription** - User subscription plans
+- **Payment** - Payment records and transactions
