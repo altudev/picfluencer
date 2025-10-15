@@ -35,7 +35,7 @@
         "expo": "^54.0.0",
         "expo-constants": "~18.0.8",
         "expo-crypto": "~15.0.6",
-        "expo-dev-client": "~6.0.11",
+        "expo-dev-client": "~6.0.15",
         "expo-linking": "~8.0.7",
         "expo-router": "~6.0.0",
         "expo-secure-store": "~15.0.6",
