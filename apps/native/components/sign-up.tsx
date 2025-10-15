@@ -1,8 +1,10 @@
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/orpc";
-import { useState } from "react";
+import { isCurrentUserAnonymous, linkAnonymousToEmail } from "@/utils/auth-helpers";
+import { useState, useEffect } from "react";
 import {
 	ActivityIndicator,
+	Alert,
 	Text,
 	TextInput,
 	TouchableOpacity,
@@ -16,38 +18,92 @@ export function SignUp() {
 	const [password, setPassword] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [isAnonymousUser, setIsAnonymousUser] = useState(false);
+
+	// Check if current user is anonymous when component mounts
+	useEffect(() => {
+		const checkAnonymousStatus = async () => {
+			try {
+				const anonymous = await isCurrentUserAnonymous();
+				setIsAnonymousUser(anonymous);
+				if (anonymous) {
+					// Pre-fill name with anonymous user's current name if available
+					const session = await authClient.getSession();
+					const currentName = session.data?.user?.name;
+					if (currentName) {
+						setName(currentName);
+					}
+				}
+			} catch (error) {
+				console.error('Error checking anonymous status:', error);
+			}
+		};
+
+		checkAnonymousStatus();
+	}, []);
 
 	const handleSignUp = async () => {
 		setIsLoading(true);
 		setError(null);
 
-		await authClient.signUp.email(
-			{
-				name,
-				email,
-				password,
-			},
-			{
-				onError: (error) => {
-					setError(error.error?.message || "Failed to sign up");
-					setIsLoading(false);
-				},
-				onSuccess: () => {
-					setName("");
-					setEmail("");
-					setPassword("");
-					queryClient.refetchQueries();
-				},
-				onFinished: () => {
-					setIsLoading(false);
-				},
-			},
-		);
+		try {
+			if (isAnonymousUser) {
+				// Link anonymous account to new email account
+				await linkAnonymousToEmail(email, password, name);
+				Alert.alert(
+					"Account Linked!",
+					"Your anonymous account has been successfully linked to your email. All your data has been preserved.",
+					[{ text: "OK" }]
+				);
+			} else {
+				// Normal sign up flow
+				await authClient.signUp.email(
+					{
+						name,
+						email,
+						password,
+					},
+					{
+						onError: (error) => {
+							setError(error.error?.message || "Failed to sign up");
+							setIsLoading(false);
+						},
+						onSuccess: () => {
+							Alert.alert(
+								"Account Created!",
+								"Your account has been successfully created.",
+								[{ text: "OK" }]
+							);
+						},
+						onFinished: () => {
+							setIsLoading(false);
+						},
+					},
+				);
+			}
+
+			// Reset form and refresh queries on success
+			setName("");
+			setEmail("");
+			setPassword("");
+			queryClient.refetchQueries();
+		} catch (error) {
+			setError(error instanceof Error ? error.message : "Failed to sign up");
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	return (
 		<View style={styles.container}>
-			<Text style={styles.title}>Create Account</Text>
+			<Text style={styles.title}>
+				{isAnonymousUser ? "Link Your Account" : "Create Account"}
+			</Text>
+			{isAnonymousUser && (
+				<Text style={styles.subtitle}>
+					Link your anonymous session to an email account to save your progress
+				</Text>
+			)}
 
 			{error && (
 				<View style={styles.errorContainer}>
@@ -107,6 +163,12 @@ const styles = StyleSheet.create((theme) => ({
 		fontWeight: "600",
 		color: theme.colors.typography,
 		marginBottom: 16,
+	},
+	subtitle: {
+		fontSize: 14,
+		color: theme.colors.typography,
+		marginBottom: 16,
+		textAlign: "center",
 	},
 	errorContainer: {
 		marginBottom: 16,

@@ -6,6 +6,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { Container } from "@/components/container";
 import { SignIn } from "@/components/sign-in";
 import { SignUp } from "@/components/sign-up";
+import { AnonymousSignIn } from "@/components/anonymous-sign-in";
 import { queryClient, orpc } from "@/utils/orpc";
 
 export default function Home() {
@@ -17,16 +18,24 @@ export default function Home() {
 		<Container>
 			<ScrollView>
 				<View style={styles.pageContainer}>
-					<Text style={styles.headerTitle}>BETTER T STACK</Text>
+					<Text style={styles.headerTitle}>Picfluencer</Text>
 					{session?.user ? (
 						<View style={styles.sessionInfoCard}>
 							<View style={styles.sessionUserRow}>
 								<Text style={styles.welcomeText}>
 									Welcome,{" "}
 									<Text style={styles.userNameText}>{session.user.name}</Text>
+									{session.user.isAnonymous && (
+										<Text style={styles.anonymousBadge}> (Anonymous)</Text>
+									)}
 								</Text>
 							</View>
 							<Text style={styles.emailText}>{session.user.email}</Text>
+							{session.user.isAnonymous && (
+								<Text style={styles.anonymousNote}>
+									You're using the app anonymously. Sign up to save your work permanently!
+								</Text>
+							)}
 
 							<TouchableOpacity
 								style={styles.signOutButton}
@@ -73,6 +82,7 @@ export default function Home() {
 						<>
 							<SignIn />
 							<SignUp />
+							<AnonymousSignIn />
 						</>
 					)}
 				</View>
@@ -112,10 +122,22 @@ const styles = StyleSheet.create((theme) => ({
 		fontWeight: "500",
 		color: theme?.colors?.typography,
 	},
+	anonymousBadge: {
+		fontSize: 12,
+		color: theme?.colors?.primary,
+		fontStyle: "italic",
+	},
 	emailText: {
 		color: theme?.colors?.typography,
 		fontSize: 14,
+		marginBottom: 8,
+	},
+	anonymousNote: {
+		color: theme?.colors?.primary,
+		fontSize: 12,
 		marginBottom: 16,
+		textAlign: "center",
+		fontStyle: "italic",
 	},
 	signOutButton: {
 		backgroundColor: theme?.colors?.destructive,

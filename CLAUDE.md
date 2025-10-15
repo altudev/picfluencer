@@ -129,10 +129,30 @@ const mutation = orpc.todo.create.useMutation();
 ### Authentication Flow
 
 - Better-Auth handles sessions via secure HTTP-only cookies
-- `packages/auth/src/index.ts` - Server-side auth config with Prisma adapter
-- `apps/native/lib/auth-client.ts` - Client-side auth client for React Native
-- Auth schema in `packages/db/prisma/schema/auth.prisma`
+- `packages/auth/src/index.ts` - Server-side auth config with Prisma adapter and anonymous plugin
+- `apps/native/lib/auth-client.ts` - Client-side auth client for React Native with anonymous client plugin
+- Auth schema in `packages/db/prisma/schema/auth.prisma` includes `isAnonymous` field
 - Protected routes use `protectedProcedure` which validates session in middleware
+- **Anonymous Authentication**: Users can start using the app immediately without email, then link their account later
+
+#### Anonymous Authentication Details
+
+- **Server Config**: Anonymous plugin configured in `packages/auth/src/index.ts` with:
+  - Email domain: `picfluencer.app`
+  - Custom name generation for anonymous users
+  - `onLinkAccount` callback for data migration (TODO: implement full migration)
+  
+- **Client Helpers**: Auth helper functions in `apps/native/utils/auth-helpers.ts`:
+  - `signInAnonymously()` - Create anonymous session
+  - `isCurrentUserAnonymous()` - Check anonymous status
+  - `linkAnonymousToEmail()` - Link anonymous to email account
+  
+- **Components**:
+  - `AnonymousSignIn` component for anonymous sign-up
+  - Updated `SignUp` component handles account linking
+  - Home screen shows anonymous status and prompts to sign up
+
+- **Database**: User model includes `isAnonymous` boolean field (defaults to `false`)
 
 ### Database Schema
 

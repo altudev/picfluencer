@@ -4,6 +4,7 @@ model User {
   email         String
   emailVerified Boolean
   image         String?
+  isAnonymous   Boolean?  @default(false)
   createdAt     DateTime
   updatedAt     DateTime
   sessions      Session[]
