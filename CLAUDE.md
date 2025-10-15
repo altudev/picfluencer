@@ -23,18 +23,18 @@ cd mobile
 bun install
 
 # Start development server (interactive menu for iOS/Android/Web)
-npm start
+bun start
 
 # Run on specific platform
-npm run ios          # iOS simulator
-npm run android      # Android emulator
-npm run web          # Web browser
+bun run ios          # iOS simulator
+bun run android      # Android emulator
+bun run web          # Web browser
 
 # Testing & Quality
-npm run lint         # Run ESLint
+bun run lint         # Run ESLint
 
 # Reset project to blank state (moves starter code to app-example/)
-npm run reset-project
+bun run reset-project
 ```
 
 ### Backend API
@@ -187,10 +187,10 @@ See `/picfluencer/docs/picfluencer-prd.md` for complete PRD. Key phases:
 ## Package Management
 
 **Package Manager:** Bun (replaces npm/yarn/pnpm)
-- Lock file: `bun.lock` (per package)
+- Lock file: `bun.lockb` (per package)
 - Install: `bun install`
 - Add: `bun add <package>`
-- Run scripts: `bun run <script>` or `npm run <script>`
+- Run scripts: `bun <script>` or `bun run <script>`
 
 ## Code Quality Standards
 
@@ -233,7 +233,7 @@ import { ThemedText } from '../../../components/ThemedText';
 ## Monorepo Notes
 
 Currently **no monorepo automation tools** (Turbo, Nx, etc.). Each package is independent:
-- Separate `package.json`, `tsconfig.json`, `bun.lock`
+- Separate `package.json`, `tsconfig.json`, `bun.lockb`
 - Different build/run commands per package
 - Manual workspace coordination
 
@@ -241,8 +241,8 @@ Future optimization: Consider Turbo for shared build cache and parallel task exe
 
 ## Quick Troubleshooting
 
-- **Bun lock file conflicts:** Delete `bun.lock` and run `bun install`
-- **Expo build issues:** Run `npm run reset-project` to create clean app directory
+- **Bun lock file conflicts:** Delete `bun.lockb` and run `bun install`
+- **Expo build issues:** Run `bun run reset-project` to create clean app directory
 - **TypeScript errors:** Check `tsconfig.json` for strict mode settings
 - **Port 3000 in use:** Backend won't start; kill process or change port in code
 - **Module not found:** Verify `@/` alias path is correct in `tsconfig.json`
