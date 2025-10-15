@@ -15,32 +15,32 @@ import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useAuth } from '@/contexts/AuthContext';
+import { signIn, signUp } from '@/lib/auth-client';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function AuthScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { signInAnonymously, sendMagicLink, signInWithEmail, signUpWithEmail, isLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isMagicLink, setIsMagicLink] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleAnonymousSignIn = async () => {
+    setIsLoading(true);
     try {
-      const result = await signInAnonymously();
-      if (result.success) {
-        Alert.alert('Success', 'Signed in anonymously! You can start using the app immediately.');
-        router.replace('/(tabs)/profile');
-      } else {
-        Alert.alert('Error', 'Failed to sign in anonymously. Please try again.');
-      }
+      await signIn.anonymous();
+      Alert.alert('Success', 'Signed in anonymously! You can start using the app immediately.');
+      router.replace('/(tabs)/profile');
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred.');
+      console.error('Anonymous sign in error:', error);
+      Alert.alert('Error', 'Failed to sign in anonymously. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -50,41 +50,49 @@ export default function AuthScreen() {
       return;
     }
 
+    setIsLoading(true);
     try {
       if (isMagicLink) {
-        const result = await sendMagicLink(email);
-        if (result.success) {
-          Alert.alert('Success', 'Magic link sent! Check your email to continue.');
-        } else {
-          Alert.alert('Error', 'Failed to send magic link. Please try again.');
-        }
+        await signIn.magicLink({
+          email,
+          callbackURL: "picfluencer://auth-callback"
+        });
+        Alert.alert('Success', 'Magic link sent! Check your email to continue.');
       } else if (isSignUp) {
         if (!password || !name) {
           Alert.alert('Error', 'Please fill in all fields.');
+          setIsLoading(false);
           return;
         }
-        const result = await signUpWithEmail(email, password, name);
-        if (result.success) {
-          Alert.alert('Success', 'Account created successfully!');
-          router.replace('/(tabs)/profile');
-        } else {
-          Alert.alert('Error', 'Failed to create account. Please try again.');
-        }
+        await signUp.email({
+          email,
+          password,
+          name,
+        });
+        Alert.alert('Success', 'Account created successfully!');
+        router.replace('/(tabs)/profile');
       } else {
         if (!password) {
           Alert.alert('Error', 'Please enter your password.');
+          setIsLoading(false);
           return;
         }
-        const result = await signInWithEmail(email, password);
-        if (result.success) {
-          Alert.alert('Success', 'Signed in successfully!');
-          router.replace('/(tabs)/profile');
-        } else {
-          Alert.alert('Error', 'Invalid email or password.');
-        }
+        await signIn.email({
+          email,
+          password,
+        });
+        Alert.alert('Success', 'Signed in successfully!');
+        router.replace('/(tabs)/profile');
       }
-    } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred.');
+    } catch (error: any) {
+      console.error('Auth error:', error);
+      if (error?.message?.includes('Invalid')) {
+        Alert.alert('Error', 'Invalid email or password.');
+      } else {
+        Alert.alert('Error', 'Authentication failed. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 

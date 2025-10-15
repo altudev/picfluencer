@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession, signOut } from '@/lib/auth-client';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -20,7 +20,9 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { user, session, isAnonymous, signOut, isLoading } = useAuth();
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
+  const isAnonymous = user?.isAnonymous === true;
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -32,10 +34,11 @@ export default function ProfileScreen() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            const result = await signOut();
-            if (result.success) {
+            try {
+              await signOut();
               router.replace('/(tabs)/auth');
-            } else {
+            } catch (error) {
+              console.error('Sign out error:', error);
               Alert.alert('Error', 'Failed to sign out. Please try again.');
             }
           },
@@ -44,7 +47,7 @@ export default function ProfileScreen() {
     );
   };
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
@@ -55,7 +58,7 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!user) {
+  if (!user || !session) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.notAuthContainer}>

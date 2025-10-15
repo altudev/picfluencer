@@ -27,7 +27,7 @@ This document describes the authentication implementation for the Picfluencer mo
 
 ### 3. Mobile Client Configuration
 - Created auth client with Expo plugin (`/lib/auth-client.ts`)
-- Implemented auth context provider (`/contexts/AuthContext.tsx`)
+- Using Better Auth's built-in hooks (useSession, signIn, signUp)
 - Configured Metro bundler for Better Auth package exports
 - Updated app scheme to `picfluencer` in `app.json`
 

@@ -83,112 +83,11 @@ export const authClient = createAuthClient({
   },
 });
 
-// Export specific methods for easier use
-export const {
-  signIn,
-  signUp,
-  signOut,
-  useSession,
-  getSession,
-  updateUser,
-  deleteUser,
-  listSessions,
-  revokeSession,
-  revokeSessions,
-  revokeOtherSessions,
-  linkSocial,
-  unlinkSocial,
-} = authClient;
+// Export the hooks and methods directly from authClient
+export const useSession = () => authClient.useSession();
 
-// Helper functions for auth flows
-export const authHelpers = {
-  // Sign in anonymously for quick onboarding
-  signInAnonymously: async () => {
-    try {
-      const result = await authClient.signIn.anonymous();
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("Anonymous sign in error:", error);
-      return { success: false, error };
-    }
-  },
-
-  // Send magic link to email
-  sendMagicLink: async (email: string) => {
-    try {
-      const result = await authClient.signIn.magicLink({
-        email,
-        callbackURL: `${getApiUrl()}/magic-link/verify`,
-      });
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("Magic link error:", error);
-      return { success: false, error };
-    }
-  },
-
-  // Sign up with email and password
-  signUpWithEmail: async (email: string, password: string, name?: string) => {
-    try {
-      const result = await authClient.signUp.email({
-        email,
-        password,
-        name,
-      });
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("Sign up error:", error);
-      return { success: false, error };
-    }
-  },
-
-  // Sign in with email and password
-  signInWithEmail: async (email: string, password: string) => {
-    try {
-      const result = await authClient.signIn.email({
-        email,
-        password,
-      });
-      return { success: true, data: result };
-    } catch (error) {
-      console.error("Sign in error:", error);
-      return { success: false, error };
-    }
-  },
-
-  // Check if user is anonymous
-  isAnonymous: (user: any) => {
-    return user?.isAnonymous === true;
-  },
-
-  // Get current session
-  getCurrentSession: async () => {
-    try {
-      const session = await authClient.getSession();
-      return session;
-    } catch (error: any) {
-      // Handle network errors gracefully
-      if (error?.message?.includes('Network request failed')) {
-        console.log("📵 Network unavailable - user appears to be offline");
-      } else {
-        console.error("Get session error:", error);
-      }
-      return null;
-    }
-  },
-
-  // Sign out
-  signOut: async () => {
-    try {
-      await authClient.signOut();
-      return { success: true };
-    } catch (error) {
-      console.error("Sign out error:", error);
-      return { success: false, error };
-    }
-  },
-};
-
-// Type exports
-export type Session = Awaited<ReturnType<typeof authClient.getSession>>;
-export type User = Session extends { user: infer U } ? U : never;
+// Export auth methods
+export const signIn = authClient.signIn;
+export const signUp = authClient.signUp;
+export const signOut = authClient.signOut;
+export const getSession = authClient.getSession;
