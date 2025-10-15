@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { anonymous } from "better-auth/plugins";
 import { magicLink } from "better-auth/plugins";
+import { expo } from "@better-auth/expo";
 import { PrismaClient } from "../generated/prisma";
 
 const prisma = new PrismaClient();
@@ -15,6 +16,13 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   secret: process.env.BETTER_AUTH_SECRET,
 
+  // Trusted origins for Expo deep linking
+  trustedOrigins: [
+    "picfluencer://", // Expo app scheme
+    "http://localhost:*", // Local development
+    "exp://*", // Expo Go development
+  ],
+
   // Email configuration (using console for development)
   emailAndPassword: {
     enabled: true,
@@ -23,6 +31,9 @@ export const auth = betterAuth({
 
   // Plugins
   plugins: [
+    // Expo plugin for mobile support
+    expo(),
+
     // Anonymous authentication for quick onboarding
     anonymous({
       emailDomainName: "picfluencer.app",

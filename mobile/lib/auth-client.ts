@@ -1,6 +1,8 @@
 import { createAuthClient } from "better-auth/react";
 import { anonymousClient } from "better-auth/client/plugins";
 import { magicLinkClient } from "better-auth/client/plugins";
+import { expoClient } from "@better-auth/expo/client";
+import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 
 // Get the API URL from environment or use localhost
@@ -12,13 +14,23 @@ const getApiUrl = () => {
 
   // Default to localhost for development
   // Note: Use your machine's IP address instead of localhost for physical devices
-  return "http://localhost:3000";
+  // For iOS Simulator: localhost works fine
+  // For Android Emulator: Use 10.0.2.2:3000
+  // For Physical devices: Use your machine's IP address
+  return "http://localhost:3000/api/auth";
 };
 
 export const authClient = createAuthClient({
   baseURL: getApiUrl(),
 
   plugins: [
+    // Expo plugin for mobile support
+    expoClient({
+      scheme: "picfluencer", // Your app's scheme for deep linking
+      storagePrefix: "picfluencer", // Prefix for secure storage keys
+      storage: SecureStore, // Secure storage for session data
+    }),
+
     // Enable anonymous authentication
     anonymousClient(),
 
@@ -70,7 +82,7 @@ export const authHelpers = {
     try {
       const result = await authClient.signIn.magicLink({
         email,
-        callbackURL: `${getApiUrl()}/api/auth/magic-link/verify`,
+        callbackURL: `${getApiUrl()}/magic-link/verify`,
       });
       return { success: true, data: result };
     } catch (error) {
