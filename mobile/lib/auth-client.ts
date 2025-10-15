@@ -4,8 +4,9 @@ import { magicLinkClient } from "better-auth/client/plugins";
 import { expoClient } from "@better-auth/expo/client";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
+import { Platform } from "react-native";
 
-// Get the API URL from environment or use localhost
+// Platform-specific API URL detection
 const getApiUrl = () => {
   // Try to get from Expo config first (using app.config.js)
   if (Constants.expoConfig?.extra?.apiUrl) {
@@ -17,16 +18,46 @@ const getApiUrl = () => {
     return Constants.manifest.extra.apiUrl;
   }
 
-  // Default to localhost for development
-  // Note: Use your machine's IP address instead of localhost for physical devices
-  // For iOS Simulator: localhost works fine
-  // For Android Emulator: Use 10.0.2.2:3000
-  // For Physical devices: Use your machine's IP address
+  // Platform-specific defaults for development
+  const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
+
+  if (isDevelopment) {
+    // Check if running in Expo Go
+    const isExpoGo = Constants.appOwnership === 'expo';
+
+    if (Platform.OS === 'android') {
+      // Android Emulator uses 10.0.2.2 to access host machine's localhost
+      // Physical Android devices need the machine's actual IP
+      const isEmulator = !Constants.isDevice;
+
+      if (isEmulator) {
+        return "http://10.0.2.2:3000/api/auth";
+      } else {
+        // For physical device, you need to set your machine's IP in .env
+        console.warn("Running on physical Android device. Make sure to set API_URL in .env with your machine's IP address");
+        return "http://10.0.2.2:3000/api/auth"; // Fallback, should be overridden by .env
+      }
+    } else if (Platform.OS === 'ios') {
+      // iOS Simulator can use localhost
+      return "http://localhost:3000/api/auth";
+    } else {
+      // Web or other platforms
+      return "http://localhost:3000/api/auth";
+    }
+  }
+
+  // Production default
   return "http://localhost:3000/api/auth";
 };
 
+// Log the detected API URL for debugging
+const apiUrl = getApiUrl();
+console.log("🔗 Auth API URL:", apiUrl);
+console.log("📱 Platform:", Platform.OS);
+console.log("🔧 Is Device:", Constants.isDevice);
+
 export const authClient = createAuthClient({
-  baseURL: getApiUrl(),
+  baseURL: apiUrl,
 
   plugins: [
     // Expo plugin for mobile support
@@ -135,8 +166,13 @@ export const authHelpers = {
     try {
       const session = await authClient.getSession();
       return session;
-    } catch (error) {
-      console.error("Get session error:", error);
+    } catch (error: any) {
+      // Handle network errors gracefully
+      if (error?.message?.includes('Network request failed')) {
+        console.log("📵 Network unavailable - user appears to be offline");
+      } else {
+        console.error("Get session error:", error);
+      }
       return null;
     }
   },

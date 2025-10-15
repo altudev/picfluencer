@@ -36,18 +36,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize auth state
   useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
     const initAuth = async () => {
       setIsLoading(true);
-      await refreshSession();
-      setIsLoading(false);
+      try {
+        await refreshSession();
+      } catch (error) {
+        console.log("Initial session refresh failed, user not logged in");
+      } finally {
+        setIsLoading(false);
+      }
+
+      // Only set up refresh interval after initial load
+      interval = setInterval(refreshSession, 5 * 60 * 1000);
     };
 
     initAuth();
 
-    // Set up session refresh interval (every 5 minutes)
-    const interval = setInterval(refreshSession, 5 * 60 * 1000);
-
-    return () => clearInterval(interval);
+    // Cleanup function
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, []);
 
   // Subscribe to auth changes
@@ -57,7 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(newSession?.user || null);
     });
 
-    return unsubscribe;
+    // Ensure we return a cleanup function, not a Promise
+    return () => {
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const contextValue: AuthContextType = {
